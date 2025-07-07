@@ -1,6 +1,8 @@
 import { supabase } from "@/lib/supabase/client"
 import { config } from "@/lib/config/env"
 import { generateUUID } from "@/lib/utils/uuid"
+import { apiClient } from "@/lib/api/client"
+import { type AxiosResponse } from "axios"
 
 export interface LocationRequest {
   uuid: string
@@ -20,25 +22,6 @@ export interface UploadMappingRequest {
 }
 
 export class LocationAPI {
-  private static async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${config.api.baseUrl}${endpoint}`
-
-    const response = await fetch(url, {
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-      ...options,
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`)
-    }
-
-    return response.json()
-  }
-
   static async uploadMappingData(request: UploadMappingRequest): Promise<string> {
     try {
       // Generate UUID for location
@@ -79,21 +62,32 @@ export class LocationAPI {
   }
 
   static async addLocation(request: LocationRequest): Promise<LocationResponse> {
-    return this.makeRequest<LocationResponse>("/add-location", {
-      method: "POST",
-      body: JSON.stringify(request),
-    })
+    try {
+      const response: AxiosResponse<LocationResponse> = await apiClient.post("/add-location", request)
+      return response.data
+    } catch (error) {
+      console.error("Error adding location:", error)
+      throw error
+    }
   }
 
   static async getLocation(uuid: string): Promise<LocationResponse> {
-    return this.makeRequest<LocationResponse>(`/location/${uuid}`, {
-      method: "GET",
-    })
+    try {
+      const response: AxiosResponse<LocationResponse> = await apiClient.get(`/location/${uuid}`)
+      return response.data
+    } catch (error) {
+      console.error("Error getting location:", error)
+      throw error
+    }
   }
 
   static async getAllLocations(): Promise<LocationResponse> {
-    return this.makeRequest<LocationResponse>("/locations", {
-      method: "GET",
-    })
+    try {
+      const response: AxiosResponse<LocationResponse> = await apiClient.get("/locations")
+      return response.data
+    } catch (error) {
+      console.error("Error getting all locations:", error)
+      throw error
+    }
   }
 }
